@@ -1,0 +1,136 @@
+/* GLOBAL STYLES */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #F8F9FD;
+    overflow-x: hidden; /* Prevent horizontal scroll */
+}
+
+/* --- SIDEBAR (DESKTOP DEFAULT) --- */
+.sidebar {
+    height: 100vh;
+    width: 250px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: #ffffff;
+    z-index: 1050; /* High Z-index to sit on top */
+    padding-top: 20px;
+    border-right: 1px solid #e0e0e0;
+    transition: left 0.3s ease-in-out; /* Smooth slide animation */
+}
+
+.sidebar-header {
+    padding: 0 20px 20px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* User Profile Section */
+.user-profile-section {
+    text-align: center;
+    padding: 20px;
+}
+
+.user-avatar {
+    width: 60px;
+    height: 60px;
+    background-color: #e9ecef;
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+/* Navigation Links */
+.nav-link {
+    color: #555;
+    padding: 12px 25px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+    .nav-link i {
+        margin-right: 10px;
+        width: 20px;
+        text-align: center;
+    }
+
+    .nav-link:hover, .nav-link.active {
+        background-color: #EBF5FF;
+        color: #2563EB;
+        border-right: 3px solid #2563EB;
+    }
+
+/* --- MAIN CONTENT --- */
+.main-content {
+    margin-left: 250px; /* Pushes content to right on Desktop */
+    padding: 30px;
+    transition: margin-left 0.3s ease-in-out;
+}
+
+/* --- MOBILE ELEMENTS (Hidden on Desktop) --- */
+.mobile-nav-toggle {
+    display: none; /* Default hidden */
+}
+
+.btn-close-sidebar {
+    display: none; /* Default hidden */
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    color: #333;
+}
+
+/* =========================================
+   📱 MOBILE RESPONSIVENESS (Max-width 768px)
+   ========================================= */
+@media (max-width: 768px) {
+
+    /* 1. Sidebar: Hidden by default (pushed left) */
+    .sidebar {
+        left: -250px;
+        box-shadow: none;
+    }
+
+        /* 2. Sidebar: Visible when 'active' class is added */
+        .sidebar.active {
+            left: 0;
+            box-shadow: 10px 0 30px rgba(0,0,0,0.1); /* Shadow to separate from content */
+        }
+
+    /* 3. Main Content: Takes full width */
+    .main-content {
+        margin-left: 0;
+        padding: 20px;
+        padding-top: 80px; /* Push down to avoid covering by toggle button */
+    }
+
+    /* 4. Toggle Button: VISIBLE & FIXED */
+    .mobile-nav-toggle {
+        display: block;
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        z-index: 1060; /* Higher than sidebar */
+        background-color: #2563EB;
+        color: white;
+        border: none;
+        width: 45px;
+        height: 45px;
+        border-radius: 8px;
+        font-size: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        cursor: pointer;
+    }
+
+    /* 5. Close Button inside Sidebar: Visible */
+    .btn-close-sidebar {
+        display: block;
+    }
+}

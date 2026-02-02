@@ -1,0 +1,119 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Task Tracker</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+
+    <button class="mobile-nav-toggle" id="sidebarToggle" type="button">
+        <i class="fa-solid fa-bars"></i>
+    </button>
+
+    <div class="sidebar d-flex flex-column" id="sidebar">
+        <div class="sidebar-header">
+            <h5 class="fw-bold mt-2">Task Tracker</h5>
+            <button class="btn-close-sidebar" id="sidebarClose" type="button">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+
+        <div class="user-profile-section">
+            <div class="user-avatar text-primary">
+                <i class="fa-solid fa-user-circle"></i>
+            </div>
+            @if (User.Identity.IsAuthenticated)
+            {
+                <h6 class="fw-bold mb-0">@User.Identity.Name</h6>
+                <small class="text-muted">@(User.IsInRole("Admin") ? "Admin" : "Team Member")</small>
+            }
+        </div>
+
+        <ul class="nav flex-column mt-3">
+            <li class="nav-item">
+                <a class="nav-link @(ViewData["ActivePage"] == "Dashboard" ? "active" : "")" asp-controller="Home" asp-action="Index">
+                    <i class="fa-solid fa-border-all"></i> Dashboard
+                </a>
+            </li>
+
+            @if (User.IsInRole("Admin"))
+            {
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Tasks" asp-action="Create">
+                        <i class="fa-solid fa-plus-square"></i> Create Task
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Tasks" asp-action="Index">
+                        <i class="fa-solid fa-list-check"></i> Manage Tasks
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Users" asp-action="Index">
+                        <i class="fa-solid fa-users"></i> Team Members
+                    </a>
+                </li>
+            }
+            else
+            {
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Tasks" asp-action="MyTasks">
+                        <i class="fa-solid fa-clipboard-check"></i> My Tasks
+                    </a>
+                </li>
+            }
+
+            <li class="nav-item mt-auto">
+                <a class="nav-link text-danger" asp-controller="Account" asp-action="Logout">
+                    <i class="fa-solid fa-sign-out-alt"></i> Logout
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        @RenderBody()
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const sidebar = document.getElementById("sidebar");
+            const toggleBtn = document.getElementById("sidebarToggle");
+            const closeBtn = document.getElementById("sidebarClose");
+            const contentOverlay = document.querySelector(".main-content");
+
+            // Function to open sidebar
+            toggleBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                sidebar.classList.add("active");
+            });
+
+            // Function to close sidebar
+            closeBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                sidebar.classList.remove("active");
+            });
+
+            // Close sidebar if user clicks a link (Better UX)
+            const navLinks = sidebar.querySelectorAll(".nav-link");
+            navLinks.forEach(link => {
+                link.addEventListener("click", () => {
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.remove("active");
+                    }
+                });
+            });
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

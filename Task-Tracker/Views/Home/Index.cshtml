@@ -1,0 +1,160 @@
+﻿@model TaskTracker.Models.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+    ViewData["ActivePage"] = "Dashboard";
+}
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">Good Morning! @User.Identity.Name</h2>
+            <p class="text-muted">Here is your daily overview.</p>
+        </div>
+        <span class="badge bg-light text-dark border p-2">@DateTime.Now.ToString("dd MMM yyyy")</span>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 border-start border-5 border-primary">
+                <h6 class="text-muted">Total Tasks</h6>
+                <h3 class="fw-bold text-primary">@Model.TotalTasks</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 border-start border-5 border-purple" style="border-color: #6f42c1 !important;">
+                <h6 class="text-muted">Pending Tasks</h6>
+                <h3 class="fw-bold" style="color: #6f42c1;">@Model.PendingTasks</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 border-start border-5 border-info">
+                <h6 class="text-muted">In Progress</h6>
+                <h3 class="fw-bold text-info">@Model.InProgressTasks</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 border-start border-5 border-success">
+                <h6 class="text-muted">Completed</h6>
+                <h3 class="fw-bold text-success">@Model.CompletedTasks</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm p-4 h-100">
+                <h5 class="fw-bold mb-4">Task Distribution</h5>
+                <div style="height: 250px; display: flex; justify-content: center;">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm p-4 h-100">
+                <h5 class="fw-bold mb-4">Task Priority Level</h5>
+                <div style="height: 250px;">
+                    <canvas id="priorityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm p-4">
+        <div class="d-flex justify-content-between mb-3">
+            <h5 class="fw-bold">Recent Tasks</h5>
+            <button class="btn btn-sm btn-outline-secondary">See All</button>
+        </div>
+
+        <table class="table table-hover align-middle">
+            <thead class="bg-light">
+                <tr>
+                    <th>Task Name</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Due Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var task in Model.RecentTasks)
+                {
+                    <tr>
+                        <td class="fw-bold">@task.Title</td>
+                        <td>
+                            @if (task.Status == TaskTracker.Models.AppTaskStatus.Completed)
+                            {
+                                <span class="badge bg-success bg-opacity-10 text-success">Completed</span>
+                            }
+                            else if (task.Status == TaskTracker.Models.AppTaskStatus.InProgress)
+                            {
+                                <span class="badge bg-info bg-opacity-10 text-info">In Progress</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary">Pending</span>
+                            }
+                        </td>
+                        <td>
+                            @if (task.Priority == TaskTracker.Models.TaskPriority.High)
+                            {
+                                <span class="badge bg-danger">High</span>
+                            }
+                            else if (task.Priority == TaskTracker.Models.TaskPriority.Medium)
+                            {
+                                <span class="badge bg-warning text-dark">Medium</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">Low</span>
+                            }
+                        </td>
+                        <td>@task.DueDate.ToString("dd MMM yyyy")</td>
+                    </tr>
+                }
+                @if (!Model.RecentTasks.Any())
+                {
+                    <tr><td colspan="4" class="text-center text-muted">No tasks found.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 1. PIE CHART (Status)
+        const ctxStatus = document.getElementById('statusChart').getContext('2d');
+        new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: {
+                labels: ['Pending', 'In Progress', 'Completed'],
+                datasets: [{
+                    data: [@Model.StatusCounts[0], @Model.StatusCounts[1], @Model.StatusCounts[2]],
+                    backgroundColor: ['#6f42c1', '#0dcaf0', '#198754'], // Purple, Cyan, Green
+                    borderWidth: 0
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        // 2. BAR CHART (Priority)
+        const ctxPriority = document.getElementById('priorityChart').getContext('2d');
+        new Chart(ctxPriority, {
+            type: 'bar',
+            data: {
+                labels: ['Low', 'Medium', 'High'],
+                datasets: [{
+                    label: 'Tasks',
+                    data: [@Model.PriorityCounts[0], @Model.PriorityCounts[1], @Model.PriorityCounts[2]],
+                    backgroundColor: ['#00c9a7', '#ffc107', '#dc3545'], // Green, Yellow, Red
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                scales: { y: { beginAtZero: true } },
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    </script>
+}
