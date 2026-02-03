@@ -1,0 +1,157 @@
+﻿@model IEnumerable<TaskTracker.Models.AppTask>
+@{
+    ViewData["Title"] = "Manage Tasks";
+    ViewData["ActivePage"] = "Manage Tasks";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold">Manage Tasks</h3>
+        <a asp-action="Create" class="btn btn-primary fw-bold">
+            <i class="fa-solid fa-plus me-2"></i> New Task
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm p-3">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="bg-light text-muted small text-uppercase">
+                    <tr>
+                        <th style="min-width: 200px;">Task Title</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Assigned To</th>
+                        <th>Due Date</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-bold text-dark">@item.Title</div>
+                                <small class="text-muted d-block text-truncate" style="max-width: 250px;">
+                                    @item.Description
+                                </small>
+                            </td>
+                            <td>
+                                @if (item.Status == TaskTracker.Models.AppTaskStatus.Completed)
+                                {
+                                    <span class="badge bg-success bg-opacity-10 text-success px-3 py-2">Completed</span>
+                                }
+                                else if (item.Status == TaskTracker.Models.AppTaskStatus.InProgress)
+                                {
+                                    <span class="badge bg-info bg-opacity-10 text-info px-3 py-2">In Progress</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2">Pending</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.Priority == TaskTracker.Models.TaskPriority.High)
+                                {
+                                    <span class="text-danger fw-bold"><i class="fa-solid fa-flag me-1"></i> High</span>
+                                }
+                                else if (item.Priority == TaskTracker.Models.TaskPriority.Medium)
+                                {
+                                    <span class="text-warning fw-bold"><i class="fa-solid fa-flag me-1"></i> Medium</span>
+                                }
+                                else
+                                {
+                                    <span class="text-success fw-bold"><i class="fa-solid fa-flag me-1"></i> Low</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex">
+                                    @foreach (var assign in item.Assignments.Take(3))
+                                    {
+                                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center border border-white"
+                                             style="width: 32px; height: 32px; font-size: 12px; margin-right: -8px;"
+                                             title="@assign.ApplicationUser.FullName">
+                                            @assign.ApplicationUser.FullName.Substring(0, 1).ToUpper()
+                                        </div>
+                                    }
+                                    @if (item.Assignments.Count > 3)
+                                    {
+                                        <div class="bg-light text-muted rounded-circle d-flex align-items-center justify-content-center border border-white"
+                                             style="width: 32px; height: 32px; font-size: 10px; margin-right: -8px;">
+                                            +@(item.Assignments.Count - 3)
+                                        </div>
+                                    }
+                                    @if (!item.Assignments.Any())
+                                    {
+                                        <span class="text-muted small">Unassigned</span>
+                                    }
+                                </div>
+                            </td>
+                            <td class="text-muted small">
+                                <i class="fa-regular fa-calendar me-1"></i> @item.DueDate.ToString("dd MMM")
+                            </td>
+                            <td class="text-end">
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-warning border-0 me-1">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </a>
+
+                                <button type="button" class="btn btn-sm btn-outline-danger border-0"
+                                        data-bs-toggle="modal" data-bs-target="#deleteTaskModal"
+                                        onclick="setDeleteId('@item.Id')">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            @if (!Model.Any())
+            {
+                <div class="text-center py-5">
+                    <div class="text-muted mb-2"><i class="fa-solid fa-clipboard-list fa-3x"></i></div>
+                    <h5 class="fw-bold">No tasks found</h5>
+                    <p class="text-muted">Create a task to get started.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteTaskModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold">Delete Task?</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="text-danger mb-3" style="font-size: 3rem;">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                </div>
+                <h5 class="fw-bold">Are you sure?</h5>
+                <p class="text-muted">This action cannot be undone. The task and its attachments will be permanently removed.</p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
+
+                <form id="deleteTaskForm" method="post">
+                    <button type="submit" class="btn btn-danger px-4">Yes, Delete It</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // This function runs when you click the trash icon in the table
+        function setDeleteId(id) {
+            // Find the form inside the modal
+            var form = document.getElementById('deleteTaskForm');
+
+            // Update the form's action URL to point to the correct ID
+            // Example: /Tasks/Delete/5
+            form.action = '/Tasks/Delete/' + id;
+        }
+    </script>
+}

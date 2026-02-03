@@ -103,5 +103,140 @@ namespace TaskTracker.Controllers
             model.AllUsers = _userManager.Users.ToList();
             return View(model);
         }
+
+        // 1. GET: List All Tasks (Admin View)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Index()
+        {
+            var tasks = await _context.Tasks
+                .Include(t => t.Assignments)
+                    .ThenInclude(a => a.ApplicationUser) // Load user names
+                .OrderByDescending(t => t.CreatedAt)
+                .ToListAsync();
+
+            return View(tasks);
+        }
+
+        // 2. POST: Delete Task
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var task = await _context.Tasks.FindAsync(id);
+            if (task != null)
+            {
+                // Remove file if exists
+                if (!string.IsNullOrEmpty(task.AttachmentPath))
+                {
+                    var filePath = Path.Combine(_env.WebRootPath, "attachments", task.AttachmentPath);
+                    if (System.IO.File.Exists(filePath)) System.IO.File.Delete(filePath);
+                }
+
+                _context.Tasks.Remove(task);
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(Index));
+        }
+
+        // 3. EDIT TASK (GET PAGE)
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var task = await _context.Tasks
+                .Include(t => t.TodoItems)
+                .Include(t => t.Assignments)
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (task == null) return NotFound();
+
+            var model = new EditTaskViewModel
+            {
+                Id = task.Id,
+                Title = task.Title,
+                Description = task.Description,
+                DueDate = task.DueDate,
+                Priority = task.Priority,
+                CurrentAttachmentPath = task.AttachmentPath,
+                // Convert DB items to simple list for the view
+                ChecklistItems = task.TodoItems.Select(i => i.Description).ToList(),
+                // Get IDs of currently assigned users
+                SelectedUserIds = task.Assignments.Select(a => a.ApplicationUserId).ToList(),
+                // Load ALL users for the modal selection
+                AllUsers = _userManager.Users.ToList()
+            };
+
+            return View(model);
+        }
+
+        // 4. EDIT TASK (POST SAVE)
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Edit(EditTaskViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var task = await _context.Tasks
+                    .Include(t => t.TodoItems)
+                    .Include(t => t.Assignments)
+                    .FirstOrDefaultAsync(t => t.Id == model.Id);
+
+                if (task == null) return NotFound();
+
+                // 1. Update Basic Info
+                task.Title = model.Title;
+                task.Description = model.Description;
+                task.DueDate = model.DueDate;
+                task.Priority = model.Priority;
+
+                // 2. Handle File Upload (Replace Old)
+                if (model.Attachment != null)
+                {
+                    // Delete old file
+                    if (!string.IsNullOrEmpty(task.AttachmentPath))
+                    {
+                        var oldPath = Path.Combine(_env.WebRootPath, "attachments", task.AttachmentPath);
+                        if (System.IO.File.Exists(oldPath)) System.IO.File.Delete(oldPath);
+                    }
+
+                    // Save new file
+                    string folder = Path.Combine(_env.WebRootPath, "attachments");
+                    string fileName = Guid.NewGuid().ToString() + "_" + model.Attachment.FileName;
+                    using (var stream = new FileStream(Path.Combine(folder, fileName), FileMode.Create))
+                    {
+                        await model.Attachment.CopyToAsync(stream);
+                    }
+                    task.AttachmentPath = fileName;
+                }
+
+                // 3. Update Checklist (Clear old, Add new)
+                _context.TodoItems.RemoveRange(task.TodoItems); // Remove existing
+                if (model.ChecklistItems != null)
+                {
+                    foreach (var item in model.ChecklistItems)
+                    {
+                        if (!string.IsNullOrWhiteSpace(item))
+                            _context.TodoItems.Add(new TodoItem { Description = item, AppTaskId = task.Id });
+                    }
+                }
+
+                // 4. Update Assignments (Clear old, Add new)
+                _context.TaskAssignments.RemoveRange(task.Assignments); // Remove existing
+                if (model.SelectedUserIds != null)
+                {
+                    foreach (var userId in model.SelectedUserIds)
+                    {
+                        _context.TaskAssignments.Add(new TaskAssignment { AppTaskId = task.Id, ApplicationUserId = userId });
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                return RedirectToAction("Index");
+            }
+
+            // If fail, reload users
+            model.AllUsers = _userManager.Users.ToList();
+            return View(model);
+        }
     }
 }

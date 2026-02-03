@@ -1,0 +1,153 @@
+﻿@model TaskTracker.Models.ViewModels.EditTaskViewModel
+@{
+    ViewData["Title"] = "Update Task";
+}
+
+<div class="container-fluid">
+    <form asp-action="Edit" method="post" enctype="multipart/form-data">
+        <input type="hidden" asp-for="Id" />
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold">Update Task</h3>
+            <button type="submit" class="btn btn-primary fw-bold px-4">SAVE CHANGES</button>
+        </div>
+
+        <div class="card border-0 shadow-sm p-4">
+
+            <div class="mb-3">
+                <label class="form-label fw-bold text-muted small">Task Title</label>
+                <input asp-for="Title" class="form-control form-control-lg bg-light" />
+                <span asp-validation-for="Title" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold text-muted small">Description</label>
+                <textarea asp-for="Description" class="form-control bg-light" rows="4"></textarea>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-muted small">Priority</label>
+                    <select asp-for="Priority" class="form-select bg-light" asp-items="Html.GetEnumSelectList<TaskTracker.Models.TaskPriority>()"></select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-muted small">Due Date</label>
+                    <input asp-for="DueDate" type="date" class="form-control bg-light" />
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-muted small">Assign To</label>
+                    <button type="button" class="btn btn-outline-primary w-100 d-flex justify-content-between align-items-center" data-bs-toggle="modal" data-bs-target="#userModal">
+                        <span><i class="fa-solid fa-users-gear me-2"></i> Update Members</span>
+                        <span class="badge bg-primary rounded-pill" id="userCountBadge">@Model.SelectedUserIds.Count</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold text-muted small">TODO Checklist</label>
+                <div id="checklist-container">
+                    @if (Model.ChecklistItems != null)
+                    {
+                        foreach (var item in Model.ChecklistItems)
+                        {
+                            <div class="input-group mb-2">
+                                <span class="input-group-text bg-white"><input type="checkbox" disabled /></span>
+                                <input type="text" class="form-control bg-white" name="ChecklistItems" value="@item" readonly />
+                                <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        }
+                    }
+                </div>
+                <div class="input-group mt-2">
+                    <input type="text" id="newChecklistInput" class="form-control" placeholder="Enter sub-task..." />
+                    <button type="button" class="btn btn-light border" onclick="addChecklistItem()">+ Add</button>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold text-muted small">Attachment</label>
+                @if (!string.IsNullOrEmpty(Model.CurrentAttachmentPath))
+                {
+                    <div class="alert alert-secondary d-flex justify-content-between align-items-center p-2 mb-2">
+                        <span><i class="fa-solid fa-paperclip me-2"></i> @Model.CurrentAttachmentPath</span>
+                        <span class="badge bg-secondary">Current File</span>
+                    </div>
+                }
+                <input asp-for="Attachment" type="file" class="form-control" />
+                <small class="text-muted">Upload a new file to replace the current one.</small>
+            </div>
+        </div>
+
+        <div class="modal fade" id="userModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title fw-bold">Select Users</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="list-group list-group-flush">
+                            @foreach (var user in Model.AllUsers)
+                            {
+                                if (user.UserName != User.Identity.Name)
+                                {
+                                    /* Check if this user is in the Selected List */
+                                    var isChecked = Model.SelectedUserIds.Contains(user.Id) ? "checked" : "";
+
+                                    <label class="list-group-item d-flex gap-3 align-items-center">
+                                        <input class="form-check-input flex-shrink-0 user-checkbox" type="checkbox"
+                                               name="SelectedUserIds" value="@user.Id" @isChecked style="font-size: 1.3em;">
+
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-light rounded-circle p-2 me-3 text-primary"><i class="fa-solid fa-user"></i></div>
+                                            <div>
+                                                <h6 class="mb-0 fw-bold">@user.FullName</h6>
+                                                <small class="text-muted">@user.Email</small>
+                                            </div>
+                                        </div>
+                                    </label>
+                                }
+                            }
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-primary w-100" data-bs-dismiss="modal">Done</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Reuse the logic from Create Page
+        function addChecklistItem() {
+            var input = document.getElementById("newChecklistInput");
+            var text = input.value.trim();
+            if (text.length > 0) {
+                var container = document.getElementById("checklist-container");
+                var html = `
+                    <div class="input-group mb-2">
+                        <span class="input-group-text bg-white"><input type="checkbox" disabled /></span>
+                        <input type="text" class="form-control bg-white" name="ChecklistItems" value="${text}" readonly />
+                        <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()"><i class="fa-solid fa-trash"></i></button>
+                    </div>`;
+                container.insertAdjacentHTML('beforeend', html);
+                input.value = "";
+                input.focus();
+            }
+        }
+
+        var checkboxes = document.querySelectorAll('.user-checkbox');
+        var countBadge = document.getElementById('userCountBadge');
+        checkboxes.forEach(box => {
+            box.addEventListener('change', function() {
+                countBadge.innerText = document.querySelectorAll('.user-checkbox:checked').length;
+            });
+        });
+    </script>
+}

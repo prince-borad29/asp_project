@@ -1,11 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using TaskTracker.Models;
 
 namespace TaskTracker.Controllers
 {
-    [Authorize(Roles = "Admin")] // Only Admin can access
+    [Authorize(Roles = "Admin")] // Strict Admin Access
     public class UsersController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -15,30 +16,39 @@ namespace TaskTracker.Controllers
             _userManager = userManager;
         }
 
-        // 1. List all users
-        public IActionResult Index()
+        // 1. List All Users
+        public async Task<IActionResult> Index()
         {
-            var users = _userManager.Users.ToList();
+            var users = await _userManager.Users.OrderByDescending(u => u.CreatedAt).ToListAsync();
             return View(users);
         }
 
-        // 2. Create User (GET)
-        [HttpGet]
-        public IActionResult Create()
-        {
-            return View();
-        }
-
-        // 3. Create User (POST)
+        // 2. Create User (Handled via Modal Form)
         [HttpPost]
         public async Task<IActionResult> Create(string fullName, string email, string password)
         {
+            // Basic Validation
+            if (string.IsNullOrEmpty(fullName) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
+            {
+                TempData["Error"] = "All fields are required.";
+                return RedirectToAction("Index");
+            }
+
+            // Check if user exists
+            var existingUser = await _userManager.FindByEmailAsync(email);
+            if (existingUser != null)
+            {
+                TempData["Error"] = "User with this email already exists.";
+                return RedirectToAction("Index");
+            }
+
             var newUser = new ApplicationUser
             {
                 UserName = email,
                 Email = email,
                 FullName = fullName,
-                EmailConfirmed = true
+                EmailConfirmed = true,
+                CreatedAt = DateTime.Now
             };
 
             var result = await _userManager.CreateAsync(newUser, password);
@@ -47,20 +57,68 @@ namespace TaskTracker.Controllers
             {
                 await _userManager.AddToRoleAsync(newUser, "User");
 
-                // Pass data to View to show the "Copy/Share" modal
-                TempData["CreatedUser"] = fullName;
-                TempData["CreatedEmail"] = email;
-                TempData["CreatedPass"] = password;
+                // ✅ STORE CREDENTIALS FOR THE SUCCESS MODAL
+                TempData["NewUser_Name"] = fullName;
+                TempData["NewUser_Email"] = email;
+                TempData["NewUser_Pass"] = password;
 
                 return RedirectToAction("Index");
             }
 
-            foreach (var error in result.Errors)
+            // If failed
+            TempData["Error"] = "Error creating user: " + string.Join(", ", result.Errors.Select(e => e.Description));
+            return RedirectToAction("Index");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Edit(string id, string fullName, string email)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
             {
-                ModelState.AddModelError("", error.Description);
+                TempData["Error"] = "User not found.";
+                return RedirectToAction("Index");
             }
 
-            return View();
+            // Update details
+            user.FullName = fullName;
+            user.Email = email;
+            user.UserName = email; // Keep username synced with email
+            user.NormalizedUserName = email.ToUpper();
+            user.NormalizedEmail = email.ToUpper();
+
+            var result = await _userManager.UpdateAsync(user);
+
+            if (result.Succeeded)
+            {
+                TempData["Success"] = "User updated successfully.";
+            }
+            else
+            {
+                TempData["Error"] = "Error updating user: " + string.Join(", ", result.Errors.Select(e => e.Description));
+            }
+
+            return RedirectToAction("Index");
+        }
+
+        // 4. DELETE USER (POST)
+        [HttpPost]
+        public async Task<IActionResult> Delete(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user != null)
+            {
+                // Prevent deleting yourself (Admin)
+                if (User.Identity.Name == user.UserName)
+                {
+                    TempData["Error"] = "You cannot delete your own account!";
+                    return RedirectToAction("Index");
+                }
+
+                await _userManager.DeleteAsync(user);
+                TempData["Success"] = "User deleted successfully.";
+            }
+            return RedirectToAction("Index");
         }
     }
 }
