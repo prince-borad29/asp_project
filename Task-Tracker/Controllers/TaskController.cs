@@ -238,5 +238,35 @@ namespace TaskTracker.Controllers
             model.AllUsers = _userManager.Users.ToList();
             return View(model);
         }
+
+        // 5. MY TASKS (For Team Members)
+        public async Task<IActionResult> MyTasks()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToAction("Login", "Account");
+
+            var myTasks = await _context.Tasks
+                .Include(t => t.Assignments)
+                .Include(t => t.TodoItems)
+                // FILTER: Only show tasks where the current user is in the assignment list
+                .Where(t => t.Assignments.Any(a => a.ApplicationUserId == user.Id))
+                .OrderByDescending(t => t.DueDate)
+                .ToListAsync();
+
+            return View(myTasks);
+        }
+
+        // 6. UPDATE STATUS (Quick Action)
+        [HttpPost]
+        public async Task<IActionResult> UpdateStatus(int id, AppTaskStatus status)
+        {
+            var task = await _context.Tasks.FindAsync(id);
+            if (task != null)
+            {
+                task.Status = status;
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(MyTasks));
+        }
     }
 }

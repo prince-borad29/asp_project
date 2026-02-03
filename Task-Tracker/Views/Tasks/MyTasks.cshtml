@@ -1,0 +1,121 @@
+﻿@model IEnumerable<TaskTracker.Models.AppTask>
+@{
+    ViewData["Title"] = "My Tasks";
+    ViewData["ActivePage"] = "My Tasks";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold">My Assigned Tasks</h3>
+            <p class="text-muted mb-0">You have @Model.Count(t => t.Status != TaskTracker.Models.AppTaskStatus.Completed) active tasks.</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        @foreach (var item in Model)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4 d-flex flex-column">
+
+                        <div class="d-flex justify-content-between mb-3">
+                            @if (item.Priority == TaskTracker.Models.TaskPriority.High)
+                            {
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">High Priority</span>
+                            }
+                            else if (item.Priority == TaskTracker.Models.TaskPriority.Medium)
+                            {
+                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning">Medium</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success">Low Priority</span>
+                            }
+                            <small class="text-muted"><i class="fa-regular fa-clock me-1"></i> Due: @item.DueDate.ToString("MMM dd")</small>
+                        </div>
+
+                        <h5 class="fw-bold text-dark mb-2">@item.Title</h5>
+                        <p class="text-muted small mb-3 flex-grow-1">
+                            @item.Description
+                        </p>
+
+                        @if (item.TodoItems != null && item.TodoItems.Any())
+                        {
+                            <div class="mb-3">
+                                <small class="text-muted fw-bold" style="font-size: 0.8rem;">CHECKLIST</small>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-primary" style="width: 50%"></div>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+
+                            <div>
+                                @if (item.Status == TaskTracker.Models.AppTaskStatus.Completed)
+                                {
+                                    <span class="text-success fw-bold"><i class="fa-solid fa-circle-check me-1"></i> Done</span>
+                                }
+                                else if (item.Status == TaskTracker.Models.AppTaskStatus.InProgress)
+                                {
+                                    <span class="text-info fw-bold"><i class="fa-solid fa-spinner me-1"></i> In Progress</span>
+                                }
+                                else
+                                {
+                                    <span class="text-secondary fw-bold"><i class="fa-solid fa-hourglass me-1"></i> Pending</span>
+                                }
+                            </div>
+
+                            <div class="dropdown">
+                                <button class="btn btn-light btn-sm fw-bold border" type="button" data-bs-toggle="dropdown">
+                                    Change Status <i class="fa-solid fa-chevron-down ms-1"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                    <li>
+                                        <form asp-action="UpdateStatus" method="post">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <input type="hidden" name="status" value="@TaskTracker.Models.AppTaskStatus.Pending" />
+                                            <button type="submit" class="dropdown-item">
+                                                <i class="fa-solid fa-pause me-2 text-secondary"></i> Mark Pending
+                                            </button>
+                                        </form>
+                                    </li>
+                                    <li>
+                                        <form asp-action="UpdateStatus" method="post">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <input type="hidden" name="status" value="@TaskTracker.Models.AppTaskStatus.InProgress" />
+                                            <button type="submit" class="dropdown-item">
+                                                <i class="fa-solid fa-play me-2 text-info"></i> Mark In Progress
+                                            </button>
+                                        </form>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form asp-action="UpdateStatus" method="post">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <input type="hidden" name="status" value="@TaskTracker.Models.AppTaskStatus.Completed" />
+                                            <button type="submit" class="dropdown-item fw-bold text-success">
+                                                <i class="fa-solid fa-check me-2"></i> Mark Completed
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (!Model.Any())
+        {
+            <div class="col-12 text-center py-5">
+                <div class="text-muted mb-3"><i class="fa-solid fa-mug-hot fa-3x"></i></div>
+                <h4 class="fw-bold">All caught up!</h4>
+                <p class="text-muted">You have no tasks assigned to you right now.</p>
+            </div>
+        }
+    </div>
+</div>
