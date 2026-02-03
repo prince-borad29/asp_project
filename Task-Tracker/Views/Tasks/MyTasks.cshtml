@@ -15,6 +15,10 @@
     <div class="row g-4">
         @foreach (var item in Model)
         {
+                int total = item.TodoItems?.Count ?? 0;
+                int done = item.TodoItems?.Count(i => i.IsCompleted) ?? 0;
+                int percent = total == 0 ? 0 : (int)((double)done / total * 100);
+
             <div class="col-md-6 col-lg-4">
                 <div class="card border-0 shadow-sm h-100">
                     <div class="card-body p-4 d-flex flex-column">
@@ -36,74 +40,83 @@
                         </div>
 
                         <h5 class="fw-bold text-dark mb-2">@item.Title</h5>
-                        <p class="text-muted small mb-3 flex-grow-1">
-                            @item.Description
-                        </p>
 
-                        @if (item.TodoItems != null && item.TodoItems.Any())
-                        {
-                            <div class="mb-3">
-                                <small class="text-muted fw-bold" style="font-size: 0.8rem;">CHECKLIST</small>
-                                <div class="progress" style="height: 6px;">
-                                    <div class="progress-bar bg-primary" style="width: 50%"></div>
-                                </div>
+                        <div class="mb-3">
+                            <span id="status-badge-@item.Id" class="badge @GetStatusClass(item.Status)">
+                                @item.Status
+                            </span>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span class="text-muted fw-bold" style="font-size: 0.8rem;">CHECKLIST</span>
+                                <span id="progress-text-@item.Id">@percent%</span>
                             </div>
-                        }
-
-                        <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
-
-                            <div>
-                                @if (item.Status == TaskTracker.Models.AppTaskStatus.Completed)
-                                {
-                                    <span class="text-success fw-bold"><i class="fa-solid fa-circle-check me-1"></i> Done</span>
-                                }
-                                else if (item.Status == TaskTracker.Models.AppTaskStatus.InProgress)
-                                {
-                                    <span class="text-info fw-bold"><i class="fa-solid fa-spinner me-1"></i> In Progress</span>
-                                }
-                                else
-                                {
-                                    <span class="text-secondary fw-bold"><i class="fa-solid fa-hourglass me-1"></i> Pending</span>
-                                }
-                            </div>
-
-                            <div class="dropdown">
-                                <button class="btn btn-light btn-sm fw-bold border" type="button" data-bs-toggle="dropdown">
-                                    Change Status <i class="fa-solid fa-chevron-down ms-1"></i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-                                    <li>
-                                        <form asp-action="UpdateStatus" method="post">
-                                            <input type="hidden" name="id" value="@item.Id" />
-                                            <input type="hidden" name="status" value="@TaskTracker.Models.AppTaskStatus.Pending" />
-                                            <button type="submit" class="dropdown-item">
-                                                <i class="fa-solid fa-pause me-2 text-secondary"></i> Mark Pending
-                                            </button>
-                                        </form>
-                                    </li>
-                                    <li>
-                                        <form asp-action="UpdateStatus" method="post">
-                                            <input type="hidden" name="id" value="@item.Id" />
-                                            <input type="hidden" name="status" value="@TaskTracker.Models.AppTaskStatus.InProgress" />
-                                            <button type="submit" class="dropdown-item">
-                                                <i class="fa-solid fa-play me-2 text-info"></i> Mark In Progress
-                                            </button>
-                                        </form>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <form asp-action="UpdateStatus" method="post">
-                                            <input type="hidden" name="id" value="@item.Id" />
-                                            <input type="hidden" name="status" value="@TaskTracker.Models.AppTaskStatus.Completed" />
-                                            <button type="submit" class="dropdown-item fw-bold text-success">
-                                                <i class="fa-solid fa-check me-2"></i> Mark Completed
-                                            </button>
-                                        </form>
-                                    </li>
-                                </ul>
+                            <div class="progress" style="height: 6px;">
+                                <div id="progress-bar-@item.Id" class="progress-bar bg-primary" style="width: @percent%"></div>
                             </div>
                         </div>
 
+                        <p class="text-muted small mb-3 flex-grow-1 text-truncate">
+                            @item.Description
+                        </p>
+
+                        <div class="mt-auto pt-3 border-top">
+                            <button class="btn btn-outline-primary w-100 fw-bold" data-bs-toggle="modal" data-bs-target="#taskModal-@item.Id">
+                                <i class="fa-solid fa-list-check me-2"></i> View & Update
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="taskModal-@item.Id" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow">
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-bold">@item.Title</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="text-muted">@item.Description</p>
+                            
+                            <h6 class="fw-bold mt-4 mb-3">Checklist</h6>
+                            <div class="list-group">
+                                @if (item.TodoItems == null || !item.TodoItems.Any())
+                                {
+                                    <div class="text-center text-muted small p-3 border rounded bg-light">
+                                        No checklist items.
+                                    </div>
+                                }
+                                else 
+                                {
+                                    @foreach (var todo in item.TodoItems)
+                                    {
+                                        <label class="list-group-item d-flex gap-3 align-items-center" style="cursor: pointer;">
+                                            <input class="form-check-input flex-shrink-0" type="checkbox" 
+                                                   style="width: 1.3em; height: 1.3em;"
+                                                   @(todo.IsCompleted ? "checked" : "")
+                                                   onchange="toggleTodo(@todo.Id, @item.Id)">
+                                            
+                                            <span class="@(todo.IsCompleted ? "text-decoration-line-through text-muted" : "")" id="todo-text-@todo.Id">
+                                                @todo.Description
+                                            </span>
+                                        </label>
+                                    }
+                                }
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(item.AttachmentPath))
+                            {
+                                <div class="mt-4 pt-3 border-top">
+                                    <small class="text-muted fw-bold">ATTACHMENT</small><br/>
+                                    <a href="~/attachments/@item.AttachmentPath" target="_blank" class="btn btn-sm btn-light border mt-2">
+                                        <i class="fa-solid fa-paperclip me-2"></i> View File
+                                    </a>
+                                </div>
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
@@ -119,3 +132,49 @@
         }
     </div>
 </div>
+
+@functions {
+    string GetStatusClass(TaskTracker.Models.AppTaskStatus s) => s switch {
+        TaskTracker.Models.AppTaskStatus.Completed => "bg-success text-white",
+        TaskTracker.Models.AppTaskStatus.InProgress => "bg-info text-dark",
+        _ => "bg-secondary text-white"
+    };
+}
+
+@section Scripts {
+    <script>
+        function toggleTodo(todoId, taskId) {
+            // Call the Controller
+            fetch('/Tasks/ToggleTodo/' + todoId, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 1. Update Progress Bar Width & Text
+                    document.getElementById('progress-bar-' + taskId).style.width = data.progress + '%';
+                    document.getElementById('progress-text-' + taskId).innerText = data.progress + '%';
+
+                    // 2. Update Status Badge Color & Text
+                    var badge = document.getElementById('status-badge-' + taskId);
+                    badge.innerText = data.status;
+                    
+                    // Reset classes and apply new ones based on status
+                    badge.className = 'badge';
+                    if (data.status === 'Completed') badge.classList.add('bg-success', 'text-white');
+                    else if (data.status === 'InProgress') badge.classList.add('bg-info', 'text-dark');
+                    else badge.classList.add('bg-secondary', 'text-white');
+
+                    // 3. Update Text Strikethrough inside the modal
+                    var textElement = document.getElementById('todo-text-' + todoId);
+                    
+                    if (data.isCompleted) {
+                        textElement.classList.add('text-decoration-line-through', 'text-muted');
+                    } else {
+                        textElement.classList.remove('text-decoration-line-through', 'text-muted');
+                    }
+                }
+            });
+        }
+    </script>
+}

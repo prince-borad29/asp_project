@@ -104,13 +104,13 @@ namespace TaskTracker.Controllers
             return View(model);
         }
 
-        // 1. GET: List All Tasks (Admin View)
+        // 1. GET: List All Tasks
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Index()
         {
             var tasks = await _context.Tasks
                 .Include(t => t.Assignments)
-                    .ThenInclude(a => a.ApplicationUser) // Load user names
+                    .ThenInclude(a => a.ApplicationUser)
                 .OrderByDescending(t => t.CreatedAt)
                 .ToListAsync();
 
@@ -138,7 +138,7 @@ namespace TaskTracker.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // 3. EDIT TASK (GET PAGE)
+        // 3. EDIT TASK 
         [HttpGet]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int id)
@@ -169,7 +169,7 @@ namespace TaskTracker.Controllers
             return View(model);
         }
 
-        // 4. EDIT TASK (POST SAVE)
+        // 4. EDIT TASK 
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(EditTaskViewModel model)
@@ -239,7 +239,7 @@ namespace TaskTracker.Controllers
             return View(model);
         }
 
-        // 5. MY TASKS (For Team Members)
+        // 5. MY TASKS 
         public async Task<IActionResult> MyTasks()
         {
             var user = await _userManager.GetUserAsync(User);
@@ -256,7 +256,7 @@ namespace TaskTracker.Controllers
             return View(myTasks);
         }
 
-        // 6. UPDATE STATUS (Quick Action)
+        // 6. UPDATE STATUS
         [HttpPost]
         public async Task<IActionResult> UpdateStatus(int id, AppTaskStatus status)
         {
@@ -267,6 +267,48 @@ namespace TaskTracker.Controllers
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction(nameof(MyTasks));
+        }
+
+        // 7. TOGGLE CHECKLIST ITEM
+        [HttpPost]
+        public async Task<IActionResult> ToggleTodo(int id)
+        {
+            var item = await _context.TodoItems
+                .Include(t => t.AppTask)
+                .ThenInclude(t => t.TodoItems)
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (item == null) return NotFound();
+
+            // 1. Toggle Status
+            item.IsCompleted = !item.IsCompleted;
+
+            // 2. Calculate Progress of Parent Task
+            var task = item.AppTask;
+            int total = task.TodoItems.Count;
+
+            // Count items where IsCompleted is true
+            int done = task.TodoItems.Count(t => t.IsCompleted);
+
+            // 3. Update Task Status based on Progress
+            if (done == 0)
+                task.Status = AppTaskStatus.Pending;
+            else if (done == total)
+                task.Status = AppTaskStatus.Completed;
+            else
+                task.Status = AppTaskStatus.InProgress;
+
+            await _context.SaveChangesAsync();
+
+            // Return JSON
+            return Json(new
+            {
+                success = true,
+                taskId = task.Id,
+                progress = total == 0 ? 0 : (int)((double)done / total * 100),
+                status = task.Status.ToString(),
+                isCompleted = item.IsCompleted // Send back the new state
+            });
         }
     }
 }

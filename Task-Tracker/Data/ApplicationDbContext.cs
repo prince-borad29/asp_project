@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using TaskTracker.Models; // Ensure this using statement is here
+using TaskTracker.Models; 
 
 namespace TaskTracker.Data
 {
-    // Notice we pass <ApplicationUser> here 👇
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)

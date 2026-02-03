@@ -8,7 +8,7 @@ using TaskTracker.Models.ViewModels;
 
 namespace TaskTracker.Controllers
 {
-    [Authorize] // Must be logged in
+    [Authorize] 
     public class HomeController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -27,7 +27,7 @@ namespace TaskTracker.Controllers
 
             IQueryable<AppTask> taskQuery = _context.Tasks.Include(t => t.Assignments);
 
-            // FILTER: If not Admin, only show my tasks
+            // FILTER: If not Admin, only show user's tasks
             if (!await _userManager.IsInRoleAsync(user, "Admin"))
             {
                 taskQuery = taskQuery.Where(t => t.Assignments.Any(a => a.ApplicationUserId == user.Id));
@@ -35,7 +35,6 @@ namespace TaskTracker.Controllers
 
             var tasks = await taskQuery.ToListAsync();
 
-            // PREPARE DATA
             var model = new DashboardViewModel
             {
                 TotalTasks = tasks.Count,
@@ -43,7 +42,7 @@ namespace TaskTracker.Controllers
                 InProgressTasks = tasks.Count(t => t.Status == AppTaskStatus.InProgress),
                 CompletedTasks = tasks.Count(t => t.Status == AppTaskStatus.Completed),
 
-                // Data for Pie Chart [Pending, InProgress, Completed]
+                // Data for Pie Chart 
                 StatusCounts = new int[]
                 {
                     tasks.Count(t => t.Status == AppTaskStatus.Pending),
@@ -51,7 +50,7 @@ namespace TaskTracker.Controllers
                     tasks.Count(t => t.Status == AppTaskStatus.Completed)
                 },
 
-                // Data for Bar Chart [Low, Medium, High]
+                // Data for Bar Chart 
                 PriorityCounts = new int[]
                 {
                     tasks.Count(t => t.Priority == TaskPriority.Low),

@@ -12,7 +12,6 @@ namespace TaskTracker.Models
         public bool IsCompleted { get; set; } = false;
 
         public int AppTaskId { get; set; }
-        // We use 'virtual' for Lazy Loading if needed later
         [ForeignKey("AppTaskId")]
         public virtual AppTask AppTask { get; set; }
     }

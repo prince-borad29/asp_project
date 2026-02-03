@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using System;
 
-namespace TaskTracker.Models  // <--- Check this namespace carefully
+namespace TaskTracker.Models  
 {
     public class ApplicationUser : IdentityUser
     {

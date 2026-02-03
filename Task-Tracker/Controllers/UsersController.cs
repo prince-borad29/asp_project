@@ -6,7 +6,7 @@ using TaskTracker.Models;
 
 namespace TaskTracker.Controllers
 {
-    [Authorize(Roles = "Admin")] // Strict Admin Access
+    [Authorize(Roles = "Admin")]
     public class UsersController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -23,11 +23,10 @@ namespace TaskTracker.Controllers
             return View(users);
         }
 
-        // 2. Create User (Handled via Modal Form)
+        // 2. Create User
         [HttpPost]
         public async Task<IActionResult> Create(string fullName, string email, string password)
         {
-            // Basic Validation
             if (string.IsNullOrEmpty(fullName) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
             {
                 TempData["Error"] = "All fields are required.";
@@ -57,7 +56,6 @@ namespace TaskTracker.Controllers
             {
                 await _userManager.AddToRoleAsync(newUser, "User");
 
-                // ✅ STORE CREDENTIALS FOR THE SUCCESS MODAL
                 TempData["NewUser_Name"] = fullName;
                 TempData["NewUser_Email"] = email;
                 TempData["NewUser_Pass"] = password;
@@ -83,7 +81,7 @@ namespace TaskTracker.Controllers
             // Update details
             user.FullName = fullName;
             user.Email = email;
-            user.UserName = email; // Keep username synced with email
+            user.UserName = email;
             user.NormalizedUserName = email.ToUpper();
             user.NormalizedEmail = email.ToUpper();
 
@@ -101,14 +99,14 @@ namespace TaskTracker.Controllers
             return RedirectToAction("Index");
         }
 
-        // 4. DELETE USER (POST)
+        // 4. DELETE USER 
         [HttpPost]
         public async Task<IActionResult> Delete(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
             if (user != null)
             {
-                // Prevent deleting yourself (Admin)
+                // Prevent deleting self 
                 if (User.Identity.Name == user.UserName)
                 {
                     TempData["Error"] = "You cannot delete your own account!";

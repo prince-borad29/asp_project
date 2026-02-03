@@ -20,7 +20,6 @@ namespace TaskTracker.Models
         public string? AttachmentPath { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
-        // Navigation Properties
         public virtual ICollection<TaskAssignment> Assignments { get; set; }
         public virtual ICollection<TodoItem> TodoItems { get; set; }
     }

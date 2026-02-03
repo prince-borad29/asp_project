@@ -27,7 +27,7 @@ namespace TaskTracker.Controllers
                 var result = await _signInManager.PasswordSignInAsync(email, password, false, false);
                 if (result.Succeeded)
                 {
-                    // Redirect based on Role (We will refine this later)
+                    // Redirect based on Role
                     return RedirectToAction("Index", "Home");
                 }
                 ModelState.AddModelError("", "Invalid login attempt.");
